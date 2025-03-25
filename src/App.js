@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Login } from "./Login";  // Ensure correct path
-import { Register } from "./Register";  // Ensure correct path
+import { Login } from "./Login";
+import { Register } from "./Register";
+import { Chat } from "./Chat";  // Import Chat component
 
 function App() {
   return (
@@ -8,10 +9,12 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="*" element={<Login />} /> {/* Default to Login */}
+        <Route path="/chat" element={<Chat />} />  {/* Route to Chat */}
+        <Route path="*" element={<Login />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
