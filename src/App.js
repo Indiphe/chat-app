@@ -1,11 +1,10 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './AuthContext';  // Import AuthContext to access user state
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';  // For routing
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';  // For routing
 import Login from './Login';  // Login component
 import Register from './Register';  // Register component
 import Chat from './Chat';  // Chat component
 import Navbar from './Navbar';  // Optional Navbar component
-import { Navigate } from 'react-router-dom';
 
 function App() {
   const { user } = useAuth();  // Access the user state from AuthContext
@@ -15,22 +14,28 @@ function App() {
       <Router>
         <Navbar />  {/* This will be your navigation bar (optional) */}
         <Routes>
-          {/* Conditional rendering based on the user's authentication status */}
+          {/* If not logged in, show Login and Register */}
           {!user ? (
             <>
-              <Route path="/login" element={<Login />} />  {/* If not logged in, show Login */}
-              <Route path="/register" element={<Register />} />  {/* Register if not logged in */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              {/* Redirect to login if accessing the home route */}
+              <Route path="/" element={<Navigate to="/login" />} />
             </>
           ) : (
-            <Route path="/chat" element={<Chat />} />  {/* If logged in, show Chat */}
+            <>
+              {/* If logged in, show Chat */}
+              <Route path="/chat" element={<Chat />} />
+              {/* Redirect to chat if accessing the home route */}
+              <Route path="/" element={<Navigate to="/chat" />} />
+            </>
           )}
-          {/* Redirect to the chat page once logged in */}
-          <Route path="/" element={user ? <Chat /> : <Login />} />
         </Routes>
-        <Route path="/chat" element={user ? <Chat /> : <Navigate to="/login" />} />
       </Router>
     </AuthProvider>
   );
 }
 
 export default App;
+
+
