@@ -2,6 +2,7 @@ import { useState } from "react";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { app } from "./firebaseConfig"; // Correct import path
 import { useNavigate } from "react-router-dom";
+import { FaEnvelope, FaLock } from "react-icons/fa"; // Import icons
 
 const auth = getAuth(app);
 
@@ -21,14 +22,29 @@ export function Login() {
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit">Login</button>
-      </form>
-      <p>Don't have an account? <span onClick={() => navigate("/register")}>Register</span></p>
+    <div className="auth-container">
+      <div className="auth-box">
+        <h2>LOGIN</h2>
+        <form onSubmit={handleLogin}>
+          <div className="input-group">
+            <FaEnvelope className="icon" />
+            <input type="email" placeholder="Email ID" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="input-group">
+            <FaLock className="icon" />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <div className="extras">
+            <label><input type="checkbox" /> Remember me</label>
+          </div>
+          <span className="forgot-password">Forgot Password?</span>
+          <button type="submit">LOGIN</button>
+        </form>
+        <p>
+          Don't have an account?{" "}
+          <span onClick={() => navigate("/register")}>Register</span>
+        </p>
+      </div>
     </div>
   );
 }

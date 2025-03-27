@@ -4,6 +4,7 @@ import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firesto
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
+
 export function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);

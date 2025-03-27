@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Login } from "./Login";
 import { Register } from "./Register";
 import { Chat } from "./Chat";  // Import Chat component
+import "./App.css"; // Ensure this is included
 
 function App() {
   return (

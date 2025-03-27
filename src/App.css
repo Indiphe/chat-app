@@ -13,8 +13,9 @@
 
 form {
   display: flex;
+  flex-direction: column; /* Ensure inputs are stacked */
+  align-items: center; /* Center elements */
 }
-
 input {
   flex: 1;
   padding: 10px;
@@ -30,4 +31,107 @@ button {
   color: white;
   border: none;
   cursor: pointer;
+}
+
+/* Center the login/register form */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #0d1b2a, #1b263b);
+}
+
+/* Form box styling */
+.auth-box {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  width: 350px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Form heading */
+.auth-box h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #fff;
+}
+
+/* Input fields */
+.input-group {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.input-group .icon {
+  color: #fff;
+  margin-right: 10px;
+}
+
+.input-group input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 16px;
+}
+
+.input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Checkbox and Forgot Password */
+.extras {
+  display: flex;
+  justify-content: space-between; /* Puts them on opposite sides */
+  align-items: center; /* Aligns them properly */
+  margin-bottom: 10px; /* Adds spacing below */
+}
+.extras label {
+  display: flex;
+  align-items: center;
+}
+.extras input {
+  margin-right: 5px;
+}
+
+/* Button styling */
+.auth-box button {
+  width: 100%;
+  padding: 12px;
+  background-color: #00c896;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.3s ease;
+}
+
+.auth-box button:hover {
+  background-color: #009e77;
+}
+
+/* Link styling */
+.auth-box p {
+  margin-top: 15px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.auth-box span {
+  color: #00c896;
+  cursor: pointer;
+}
+
+.auth-box span:hover {
+  text-decoration: underline;
 }
