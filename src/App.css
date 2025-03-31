@@ -5,7 +5,8 @@
 }
 
 .message {
-  background-color: #f1f1f1;
+  background-color: rgba(0, 0, 0, 0.7); /* Darker background for contrast */
+  color: white; /* Ensures text is readable */
   padding: 10px;
   margin: 5px;
   border-radius: 5px;
