@@ -67,14 +67,27 @@ export function Chat() {
       padding: '20px',
       width: '100vw',
       height: '100vh',
-      backgroundImage: 'url("https://www.reachcambridge.com/wp-content/uploads/2019/11/coding.jpg")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       color: 'green',
+      position: 'relative',  // Make the parent container relative
     }}>
+      {/* Background image container */}
+      <div style={{
+        position: 'absolute', // Position it behind the content
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'url("https://www.reachcambridge.com/wp-content/uploads/2019/11/coding.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'blur(8px)',  // Apply blur effect to the background
+        zIndex: -1,           // Ensure the background is behind everything else
+      }}></div>
+
+      
       <h2>Chat Room</h2>
       <button onClick={() => signOut(auth).then(() => navigate("/login"))} style={{
         padding: '10px 20px',
