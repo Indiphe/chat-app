@@ -1,5 +1,7 @@
 // src/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import firebase from 'firebase/app';
+import 'firebase/auth'; // Make sure to import Firebase Authentication
 
 // Create the AuthContext with a default value of an empty object
 const authContext = createContext();
@@ -8,15 +10,18 @@ const authContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  // Simulate an auth check or fetch user data on component mount (you can replace this with actual logic)
+  // Listen for authentication state changes
   useEffect(() => {
-    const fetchUser = async () => {
-      // Simulate getting the current logged-in user (you can replace this with Firebase or any other logic)
-      const loggedInUser = localStorage.getItem('user'); // Example: user data stored in localStorage
-      setUser(loggedInUser ? JSON.parse(loggedInUser) : null);
-    };
+    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user); // User is logged in
+      } else {
+        setUser(null); // No user logged in
+      }
+    });
 
-    fetchUser();
+    // Clean up the subscription when the component is unmounted
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -30,3 +35,4 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   return useContext(authContext);
 };
+
