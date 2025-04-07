@@ -1,0 +1,84 @@
+/* Profile.css */
+.profile-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    font-family: "Poppins", sans-serif;
+  }
+  
+  .profile-pic img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #4a90e2;
+    object-fit: cover;
+  }
+  
+  .profile-pic input {
+    margin-top: 10px;
+    padding: 5px;
+  }
+  
+  .profile-details {
+    margin-top: 15px;
+  }
+  
+  .profile-details label {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+  }
+  
+  .profile-details input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  
+  button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4a90e2;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  button:hover {
+    background-color: #357ab7;
+  }
+  
+  button[disabled] {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  button.logout {
+    background-color: #ff4d4d;
+  }
+  
+  button.logout:hover {
+    background-color: #cc0000;
+  }
+  
+  button.deactivate {
+    background-color: #f1c40f;
+  }
+  
+  button.deactivate:hover {
+    background-color: #d4ac0d;
+  }
+  
