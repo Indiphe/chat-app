@@ -21,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Auth, Firestore, and Storage
 const auth = getAuth(app); // Firebase Authentication
 const db = getFirestore(app); // Firestore
-const storage = getStorage(app); // Firebase Storage
+const storage = getStorage(app); // ✅ this is what you're missing
 
 // Export services for use in other parts of the app
 export { app, auth, db, storage };

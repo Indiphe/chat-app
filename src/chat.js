@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { auth, db } from "./firebaseConfig";
-import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
+import { auth, db, storage } from "./firebaseConfig";
+import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc, onSnapshot, setDoc} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { Mic, MicOff } from "lucide-react";
 
 export function Chat() {
   const [message, setMessage] = useState("");
@@ -13,7 +15,20 @@ export function Chat() {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isReplying, setIsReplying] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordingInterval, setRecordingInterval] = useState(null);
+  const [waveformData, setWaveformData] = useState([]);
+  const [recorder, setRecorder] = useState(null);
+  const [recordedAudio, setRecordedAudio] = useState(null);
   const navigate = useNavigate();
+  let typingTimeout = null;
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -53,7 +68,53 @@ export function Chat() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (message.trim() === "") return;
+    console.log("Send clicked, mediaFile:", mediaFile);
+    if (message.trim() === "" && !mediaFile) {
+      console.log("Nothing to send");
+      return;
+    }
+
+    let mediaUrl = null;
+
+    if (mediaFile) {
+      console.log("Attempting to upload file:", mediaFile.name, "Size:", mediaFile.size, "Type:", mediaFile.type);
+      setIsUploading(true);
+      try {
+        const storageRef = ref(storage, `chat-media/${Date.now()}-${mediaFile.name}`);
+        console.log("Storage reference created", storageRef);
+        // Add upload progress monitoring
+        const uploadTask = uploadBytes(storageRef, mediaFile);
+        console.log("Upload task created");
+    
+        // Wait for upload to complete
+        await uploadTask;
+        console.log("File uploaded successfully");
+    
+        mediaUrl = await getDownloadURL(storageRef);
+        console.log("Got download URL:", mediaUrl);
+      } catch (error) {
+        console.error("Error uploading file:", error.code, error.message, error);
+        alert("Failed to upload media: " + error.message);
+        return;
+      } finally {
+      setIsUploading(false);
+      }
+    }
+    //code for sending audio
+    if (audioBlob) {
+      const audioRef = ref(storage, `voice-notes/${Date.now()}.webm`);
+      setIsUploading(true);
+      try {
+        await uploadBytes(audioRef, audioBlob);
+        mediaUrl = await getDownloadURL(audioRef);
+      } catch (err) {
+        console.error("Audio upload failed", err);
+        alert("Failed to upload voice note: " + err.message);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
 
     try {
       const userRef = doc(db, "users", auth.currentUser.uid);
@@ -71,49 +132,115 @@ export function Chat() {
         username: senderName,
         replyTo: isReplying ? selectedMessage.text : null,
         reactions: [],
+        mediaUrl: mediaUrl || null,
       };
 
       const docRef = await addDoc(collection(db, "messages"), newMessage);
       setMessages((prevMessages) => [...prevMessages, { id: docRef.id, ...newMessage }]);
       setMessage("");
+      setMediaFile(null);
+      setMediaPreview(null);
       setSelectedMessage(null);
       setIsReplying(false);
+      setTypingStatus(false);
+      setAudioBlob(null);
+
     } catch (error) {
       console.error("Error sending message: ", error);
     }
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setMediaFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setMediaPreview(previewUrl);
+    }
+  };
+
+  //Code for recording audio
+  const startRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    setMediaRecorder(recorder);
+    setAudioChunks([]);
+  
+    recorder.ondataavailable = (e) => {
+      setAudioChunks((prev) => [...prev, e.data]);
+    };
+  
+    recorder.onstop = async () => {
+      const blob = new Blob(audioChunks, { type: "audio/webm" });
+      setAudioBlob(blob);
+      setMediaPreview(URL.createObjectURL(blob));
+    };
+  
+    recorder.start();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    source.connect(analyser);
+    analyser.fftSize = 64;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const drawWaveform = () => {
+    analyser.getByteTimeDomainData(dataArray);
+    setWaveformData([...dataArray]);
+    if (isRecording) {
+    requestAnimationFrame(drawWaveform);
+    }
+    };
+
+    drawWaveform();
+    setIsRecording(true);
+
+    setRecordingTime(0);
+    const interval = setInterval(() => {
+    setRecordingTime((prev) => prev + 1);
+    }, 1000);
+    setRecordingInterval(interval);
+  };
+  
+  const stopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+    clearInterval(recordingInterval);
+    setRecordingInterval(null);
+  };
+
   const handleReply = () => {
     setIsReplying(true);
-    setSelectedMessage(null); // Optional: Close the context menu after selecting reply
-    setContextMenu(null); // Close context menu
+    setSelectedMessage(null);
+    setContextMenu(null);
   };
 
   const handleReact = () => {
     setShowEmojiPicker(true);
-    setContextMenu(null); // Close context menu after selecting react
+    setContextMenu(null);
   };
 
   const handleEmojiSelect = async (emoji) => {
-    // Ensure reactions is initialized as an empty array if it doesn't exist
     const updatedMessage = {
       ...selectedMessage,
       reactions: selectedMessage.reactions ? [...selectedMessage.reactions, { emoji, userId: auth.currentUser.uid }] : [{ emoji, userId: auth.currentUser.uid }],
     };
-     // Update the Firestore message
-  const messageRef = doc(db, "messages", selectedMessage.id);
-  await updateDoc(messageRef, {
-    reactions: updatedMessage.reactions,
-  });
-   // Update the local state to reflect the new reactions
-   setMessages((prevMessages) =>
-    prevMessages.map((msg) =>
-      msg.id === selectedMessage.id ? { ...msg, reactions: updatedMessage.reactions } : msg
-    )
-  );
-  // Close the emoji picker
-  setShowEmojiPicker(false);
-};
+    const messageRef = doc(db, "messages", selectedMessage.id);
+    await updateDoc(messageRef, {
+      reactions: updatedMessage.reactions,
+    });
+    setMessages((prevMessages) =>
+      prevMessages.map((msg) =>
+        msg.id === selectedMessage.id ? { ...msg, reactions: updatedMessage.reactions } : msg
+      )
+    );
+
+    setShowEmojiPicker(false);
+  };
+
   return (
     <div style={{ padding: "20px", width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", color: "green", position: "relative" }}>
       <div style={{
@@ -122,7 +249,6 @@ export function Chat() {
         backgroundSize: "cover", backgroundPosition: "center", filter: "blur(8px)", zIndex: -1,
       }}></div>
 
-      {/* Clickable Floating Avatar */}
       {currentUser && (
         <img
           src={currentUser.profilePic || "https://via.placeholder.com/50"}
@@ -186,6 +312,15 @@ export function Chat() {
                 </div>
                 <div style={{ padding: "10px", backgroundColor: isOwnMessage ? "#d1f7c4" : "#f1f1f1", borderRadius: "10px", wordWrap: "break-word", color: "black" }}>
                   {msg.text}
+                  {msg.mediaUrl && (
+                    <div style={{ marginTop: "10px" }}>
+                      {msg.mediaUrl.endsWith(".webm") ? (
+                        <audio controls src={msg.mediaUrl} />
+                      ) : (
+                        <img src={msg.mediaUrl} alt="Shared Media" style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "cover" }} />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -193,7 +328,6 @@ export function Chat() {
         })}
       </div>
 
-      {/* Display Reactions (Emojis) below the message */}
       {selectedMessage && (
         <div style={{ marginTop: "5px", fontSize: "16px", color: "#666" }}>
           {selectedMessage.reactions?.map((reaction, idx) => (
@@ -204,7 +338,6 @@ export function Chat() {
         </div>
       )}
 
-      {/* Display the context menu */}
       {contextMenu && selectedMessage && (
         <div
           style={{
@@ -223,7 +356,6 @@ export function Chat() {
         </div>
       )}
 
-      {/* Emoji picker */}
       {showEmojiPicker && (
         <div style={{
           position: "absolute", bottom: "100px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#fff", border: "1px solid #ccc", borderRadius: "5px", padding: "10px", display: "flex", flexDirection: "column", alignItems: "center", flexDirection: "row"
@@ -236,16 +368,90 @@ export function Chat() {
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} style={{ width: "90%", display: "flex", alignItems: "center", padding: "10px" }}>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type your message..."
-          style={{ flexGrow: 1, padding: "10px", fontSize: "16px", borderRadius: "5px", border: "1px solid #ddd" }}
-        />
-        <button type="submit" style={{ padding: "10px 20px", backgroundColor: "#4CAF50", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer", marginLeft: "10px" }}>Send</button>
-      </form>
+      <div style={{ fontSize: "14px", color: "#999", padding: "10px", display: Object.keys(typingUsers).length > 0 ? "block" : "none" }}>
+        {Object.keys(typingUsers).map((userId) => typingUsers[userId] && users[userId] ? `${users[userId].firstName} ${users[userId].surname} is typing...` : null)}
+      </div>
+
+      <form onSubmit={handleSendMessage} style={{ width: "90%", padding: "10px" }}>
+  {/* File input + media preview section */}
+  <div style={{ marginBottom: "10px" }}>
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleFileSelect}
+      style={{ marginBottom: "10px" }}
+    />
+    {mediaPreview && (
+      <div>
+        {mediaFile?.type.startsWith("audio/") ? (
+          <audio controls src={mediaPreview} style={{ width: "100%" }} />
+        ) : (
+          <img
+            src={mediaPreview}
+            alt="Preview"
+            style={{ width: "100px", height: "100px", objectFit: "cover" }}
+          />
+        )}
+      </div>
+    )}
+  </div>
+
+  {/* Message input + mic + send section */}
+  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <input
+      type="text"
+      value={message}
+      onChange={handleTyping}
+      placeholder="Type your message..."
+      style={{
+        flexGrow: 1,
+        padding: "10px",
+        fontSize: "16px",
+        borderRadius: "5px",
+        border: "1px solid #ddd",
+      }}
+    />
+    <button
+      type="button"
+      onClick={isRecording ? stopRecording : startRecording}
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        padding: 0,
+      }}
+    >
+      {isRecording ? (
+        <MicOff color="red" size={28} />
+      ) : (
+        <Mic color="#4CAF50" size={28} />
+      )}
+      {isRecording && (
+        <div style={{ fontSize: "12px", color: "red", marginLeft: "5px" }}>
+          {Math.floor(recordingTime / 60)}:
+          {String(recordingTime % 60).padStart(2, "0")}
+        </div>
+      )}
+    </button>
+    <button
+      type="submit"
+      disabled={isUploading}
+      style={{
+        padding: "10px 20px",
+        backgroundColor: isUploading ? "#cccccc" : "#4CAF50",
+        color: "#fff",
+        border: "none",
+        borderRadius: "5px",
+        cursor: isUploading ? "not-allowed" : "pointer",
+      }}
+    >
+      {isUploading ? "Uploading..." : "Send"}
+    </button>
+  </div>
+</form>
+
     </div>
   );
 }
