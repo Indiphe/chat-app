@@ -142,7 +142,6 @@ export function Chat() {
       setMediaPreview(null);
       setSelectedMessage(null);
       setIsReplying(false);
-      setTypingStatus(false);
       setAudioBlob(null);
 
     } catch (error) {
@@ -368,10 +367,6 @@ export function Chat() {
         </div>
       )}
 
-      <div style={{ fontSize: "14px", color: "#999", padding: "10px", display: Object.keys(typingUsers).length > 0 ? "block" : "none" }}>
-        {Object.keys(typingUsers).map((userId) => typingUsers[userId] && users[userId] ? `${users[userId].firstName} ${users[userId].surname} is typing...` : null)}
-      </div>
-
       <form onSubmit={handleSendMessage} style={{ width: "90%", padding: "10px" }}>
   {/* File input + media preview section */}
   <div style={{ marginBottom: "10px" }}>
@@ -401,7 +396,6 @@ export function Chat() {
     <input
       type="text"
       value={message}
-      onChange={handleTyping}
       placeholder="Type your message..."
       style={{
         flexGrow: 1,
