@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { auth, db, storage } from "./firebaseConfig";
-import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc, onSnapshot, setDoc} from "firebase/firestore";
+import { auth, db, storage } from "./firebaseConfig"; // Ensure storage is imported
+import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +15,7 @@ export function Chat() {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isReplying, setIsReplying] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [mediaFile, setMediaFile] = useState(null);
+  const [profilePicUrl, setProfilePicUrl] = useState("");
   const [mediaPreview, setMediaPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -25,10 +25,13 @@ export function Chat() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingInterval, setRecordingInterval] = useState(null);
   const [waveformData, setWaveformData] = useState([]);
-  const [recorder, setRecorder] = useState(null);
-  const [recordedAudio, setRecordedAudio] = useState(null);
+  const [mediaFile, setMediaFile] = useState(null); // Define mediaFile state
   const navigate = useNavigate();
   let typingTimeout = null;
+
+  const handleTyping = (e) => {
+    setMessage(e.target.value);
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -38,7 +41,7 @@ export function Chat() {
         usersData[doc.id] = {
           firstName: doc.data().firstName,
           surname: doc.data().surname,
-          profilePic: doc.data().profilePic || "https://via.placeholder.com/50",
+          profilePic: doc.data().profilePic || doc.data().profilePicUrl || "https://via.placeholder.com/50"
         };
       });
       setUsers(usersData);
@@ -47,9 +50,11 @@ export function Chat() {
     const fetchUserProfile = async () => {
       if (auth.currentUser) {
         const userRef = doc(db, "users", auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setCurrentUser(userSnap.data());
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setProfilePicUrl(userData.profilePicUrl || "https://via.placeholder.com/150");
+          setCurrentUser(userData);
         }
       }
     };
@@ -68,7 +73,6 @@ export function Chat() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    console.log("Send clicked, mediaFile:", mediaFile);
     if (message.trim() === "" && !mediaFile) {
       console.log("Nothing to send");
       return;
@@ -76,31 +80,24 @@ export function Chat() {
 
     let mediaUrl = null;
 
+    // Upload media if available
     if (mediaFile) {
-      console.log("Attempting to upload file:", mediaFile.name, "Size:", mediaFile.size, "Type:", mediaFile.type);
       setIsUploading(true);
       try {
         const storageRef = ref(storage, `chat-media/${Date.now()}-${mediaFile.name}`);
-        console.log("Storage reference created", storageRef);
-        // Add upload progress monitoring
         const uploadTask = uploadBytes(storageRef, mediaFile);
-        console.log("Upload task created");
-    
-        // Wait for upload to complete
         await uploadTask;
-        console.log("File uploaded successfully");
-    
         mediaUrl = await getDownloadURL(storageRef);
-        console.log("Got download URL:", mediaUrl);
       } catch (error) {
-        console.error("Error uploading file:", error.code, error.message, error);
+        console.error("Error uploading file:", error.code, error.message);
         alert("Failed to upload media: " + error.message);
         return;
       } finally {
-      setIsUploading(false);
+        setIsUploading(false);
       }
     }
-    //code for sending audio
+
+    // Upload audio if recorded
     if (audioBlob) {
       const audioRef = ref(storage, `voice-notes/${Date.now()}.webm`);
       setIsUploading(true);
@@ -132,7 +129,7 @@ export function Chat() {
         username: senderName,
         replyTo: isReplying ? selectedMessage.text : null,
         reactions: [],
-        mediaUrl: mediaUrl || null,
+        mediaUrl: mediaUrl,
       };
 
       const docRef = await addDoc(collection(db, "messages"), newMessage);
@@ -143,7 +140,6 @@ export function Chat() {
       setSelectedMessage(null);
       setIsReplying(false);
       setAudioBlob(null);
-
     } catch (error) {
       console.error("Error sending message: ", error);
     }
@@ -158,23 +154,23 @@ export function Chat() {
     }
   };
 
-  //Code for recording audio
+  // Audio recording functions
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new MediaRecorder(stream);
     setMediaRecorder(recorder);
     setAudioChunks([]);
-  
+
     recorder.ondataavailable = (e) => {
       setAudioChunks((prev) => [...prev, e.data]);
     };
-  
+
     recorder.onstop = async () => {
       const blob = new Blob(audioChunks, { type: "audio/webm" });
       setAudioBlob(blob);
       setMediaPreview(URL.createObjectURL(blob));
     };
-  
+
     recorder.start();
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaStreamSource(stream);
@@ -185,11 +181,11 @@ export function Chat() {
     const dataArray = new Uint8Array(bufferLength);
 
     const drawWaveform = () => {
-    analyser.getByteTimeDomainData(dataArray);
-    setWaveformData([...dataArray]);
-    if (isRecording) {
-    requestAnimationFrame(drawWaveform);
-    }
+      analyser.getByteTimeDomainData(dataArray);
+      setWaveformData([...dataArray]);
+      if (isRecording) {
+        requestAnimationFrame(drawWaveform);
+      }
     };
 
     drawWaveform();
@@ -197,11 +193,11 @@ export function Chat() {
 
     setRecordingTime(0);
     const interval = setInterval(() => {
-    setRecordingTime((prev) => prev + 1);
+      setRecordingTime((prev) => prev + 1);
     }, 1000);
     setRecordingInterval(interval);
   };
-  
+
   const stopRecording = () => {
     if (mediaRecorder) {
       mediaRecorder.stop();
@@ -227,30 +223,40 @@ export function Chat() {
       ...selectedMessage,
       reactions: selectedMessage.reactions ? [...selectedMessage.reactions, { emoji, userId: auth.currentUser.uid }] : [{ emoji, userId: auth.currentUser.uid }],
     };
+
     const messageRef = doc(db, "messages", selectedMessage.id);
     await updateDoc(messageRef, {
       reactions: updatedMessage.reactions,
     });
+
     setMessages((prevMessages) =>
       prevMessages.map((msg) =>
         msg.id === selectedMessage.id ? { ...msg, reactions: updatedMessage.reactions } : msg
       )
     );
-
     setShowEmojiPicker(false);
   };
 
   return (
     <div style={{ padding: "20px", width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", color: "green", position: "relative" }}>
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: 'url("https://www.reachcambridge.com/wp-content/uploads/2019/11/coding.jpg")',
-        backgroundSize: "cover", backgroundPosition: "center", filter: "blur(8px)", zIndex: -1,
-      }}></div>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: 'url("https://www.reachcambridge.com/wp-content/uploads/2019/11/coding.jpg")',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          filter: "blur(8px)",
+          zIndex: -1,
+        }}
+      ></div>
 
-      {currentUser && (
+      {profilePicUrl && (
         <img
-          src={currentUser.profilePic || "https://via.placeholder.com/50"}
+          src={profilePicUrl}
           alt="Profile"
           onClick={() => navigate("/profile")}
           style={{
@@ -268,17 +274,15 @@ export function Chat() {
       )}
 
       <h2>Chat Room</h2>
-      <button onClick={() => signOut(auth).then(() => navigate("/login"))} style={{
-        padding: "10px 20px", backgroundColor: "#4CAF50", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer",
-      }}>Logout</button>
 
       <div style={{ width: "90%", height: "80vh", overflowY: "auto", display: "flex", flexDirection: "column", padding: "10px" }}>
-        {messages.map((msg, index) => {
+        {messages.map((msg) => {
           const isOwnMessage = msg.uid === auth.currentUser?.uid;
-          const user = users[msg.uid] || {};
+          const user = users[msg.uid] || { firstName: "Unknown", surname: "User", profilePic: "https://via.placeholder.com/50" };
+
           return (
             <div
-              key={index}
+              key={msg.id}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -303,39 +307,46 @@ export function Chat() {
                   borderRadius: "50%",
                   marginRight: isOwnMessage ? "0" : "10px",
                   marginLeft: isOwnMessage ? "10px" : "0",
+                  objectFit: "cover",
+                  backgroundColor: "#ccc",
                 }}
               />
               <div style={{ display: "flex", flexDirection: "column", maxWidth: "60%" }}>
-                <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "5px", textAlign: isOwnMessage ? "right" : "left" }}>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#aaa",
+                    marginBottom: "5px",
+                    textAlign: isOwnMessage ? "right" : "left",
+                  }}
+                >
                   {user.firstName ? `${user.firstName} ${user.surname}` : msg.username}
                 </div>
-                <div style={{ padding: "10px", backgroundColor: isOwnMessage ? "#d1f7c4" : "#f1f1f1", borderRadius: "10px", wordWrap: "break-word", color: "black" }}>
+                <div
+                  style={{
+                    padding: "10px",
+                    backgroundColor: isOwnMessage ? "#d1f7c4" : "#f1f1f1",
+                    borderRadius: "10px",
+                    wordWrap: "break-word",
+                    color: "black",
+                  }}
+                >
                   {msg.text}
-                  {msg.mediaUrl && (
-                    <div style={{ marginTop: "10px" }}>
-                      {msg.mediaUrl.endsWith(".webm") ? (
-                        <audio controls src={msg.mediaUrl} />
-                      ) : (
-                        <img src={msg.mediaUrl} alt="Shared Media" style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "cover" }} />
-                      )}
-                    </div>
-                  )}
                 </div>
+                {msg.reactions?.length > 0 && (
+                  <div style={{ marginTop: "5px", fontSize: "16px", color: "#666" }}>
+                    {msg.reactions.map((reaction, idx) => (
+                      <span key={idx} style={{ marginRight: "5px" }}>
+                        {reaction.emoji}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
-
-      {selectedMessage && (
-        <div style={{ marginTop: "5px", fontSize: "16px", color: "#666" }}>
-          {selectedMessage.reactions?.map((reaction, idx) => (
-            <span key={idx} style={{ marginRight: "5px" }}>
-              {reaction.emoji}
-            </span>
-          ))}
-        </div>
-      )}
 
       {contextMenu && selectedMessage && (
         <div
@@ -347,55 +358,55 @@ export function Chat() {
             border: "1px solid #ccc",
             padding: "5px",
             borderRadius: "5px",
-            cursor: "pointer",
+            boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)",
+            zIndex: 1000,
           }}
         >
-          <div onClick={handleReply}>Reply</div>
-          <div onClick={handleReact}>React</div>
+          <div onClick={handleReply} style={{ cursor: "pointer", padding: "5px" }}>
+            Reply
+          </div>
+          <div onClick={handleReact} style={{ cursor: "pointer", padding: "5px" }}>
+            React
+          </div>
         </div>
       )}
 
-      {showEmojiPicker && (
-        <div style={{
-          position: "absolute", bottom: "100px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#fff", border: "1px solid #ccc", borderRadius: "5px", padding: "10px", display: "flex", flexDirection: "column", alignItems: "center", flexDirection: "row"
-        }}>
-          <div onClick={() => handleEmojiSelect("😊")} style={{ fontSize: "24px", cursor: "pointer", marginBottom: "5px" }}>😊</div>
-          <div onClick={() => handleEmojiSelect("😂")} style={{ fontSize: "24px", cursor: "pointer", marginBottom: "5px" }}>😂</div>
-          <div onClick={() => handleEmojiSelect("❤️")} style={{ fontSize: "24px", cursor: "pointer", marginBottom: "5px" }}>❤️</div>
-          <div onClick={() => handleEmojiSelect("😢")} style={{ fontSize: "24px", cursor: "pointer", marginBottom: "5px" }}>😢</div>
-          <div onClick={() => handleEmojiSelect("👍")} style={{ fontSize: "24px", cursor: "pointer" }}>👍</div>
-        </div>
-      )}
-
-      <form onSubmit={handleSendMessage} style={{ width: "90%", padding: "10px" }}>
-  {/* File input + media preview section */}
+<form onSubmit={handleSendMessage} style={{ width: "100%" }}>
+  {/* Media Upload + Preview */}
   <div style={{ marginBottom: "10px" }}>
     <input
       type="file"
-      accept="image/*"
+      accept="image/*,audio/*"
       onChange={handleFileSelect}
       style={{ marginBottom: "10px" }}
     />
     {mediaPreview && (
       <div>
-        {mediaFile?.type.startsWith("audio/") ? (
+        {mediaFile?.type?.startsWith("audio/") ? (
           <audio controls src={mediaPreview} style={{ width: "100%" }} />
         ) : (
           <img
             src={mediaPreview}
             alt="Preview"
-            style={{ width: "100px", height: "100px", objectFit: "cover" }}
+            style={{
+              width: "100px",
+              height: "100px",
+              objectFit: "cover",
+              borderRadius: "8px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+            }}
           />
         )}
       </div>
     )}
   </div>
 
-  {/* Message input + mic + send section */}
+  {/* Message input + mic + send */}
   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
     <input
       type="text"
       value={message}
+      onChange={handleTyping}
       placeholder="Type your message..."
       style={{
         flexGrow: 1,
@@ -405,6 +416,7 @@ export function Chat() {
         border: "1px solid #ddd",
       }}
     />
+
     <button
       type="button"
       onClick={isRecording ? stopRecording : startRecording}
@@ -429,6 +441,7 @@ export function Chat() {
         </div>
       )}
     </button>
+
     <button
       type="submit"
       disabled={isUploading}
@@ -446,6 +459,8 @@ export function Chat() {
   </div>
 </form>
 
+
+    
     </div>
   );
 }
