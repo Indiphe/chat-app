@@ -5,6 +5,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Mic, MicOff } from "lucide-react";
+import { Cloudinary } from '@cloudinary/url-gen';
 
 export function Chat() {
   const [message, setMessage] = useState("");
@@ -26,6 +27,7 @@ export function Chat() {
   const [recordingInterval, setRecordingInterval] = useState(null);
   const [waveformData, setWaveformData] = useState([]);
   const [mediaFile, setMediaFile] = useState(null); // Define mediaFile state
+  const cld = new Cloudinary({ cloud: { cloudName: 'drpqytgbz' } }); // Initialize Cloudinary with your cloud name
   const navigate = useNavigate();
   let typingTimeout = null;
 
@@ -84,13 +86,20 @@ export function Chat() {
     if (mediaFile) {
       setIsUploading(true);
       try {
-        const storageRef = ref(storage, `chat-media/${Date.now()}-${mediaFile.name}`);
-        const uploadTask = uploadBytes(storageRef, mediaFile);
-        await uploadTask;
-        mediaUrl = await getDownloadURL(storageRef);
+        const formData = new FormData();
+        formData.append("file", mediaFile);
+        formData.append("upload_preset", "images"); // replace with your preset
+    
+        const res = await fetch(`https://api.cloudinary.com/v1_1/drpqytgbz/image/upload`, {
+          method: "POST",
+          body: formData,
+        });
+    
+        const data = await res.json();
+        mediaUrl = data.secure_url;
       } catch (error) {
-        console.error("Error uploading file:", error.code, error.message);
-        alert("Failed to upload media: " + error.message);
+        console.error("Error uploading to Cloudinary:", error);
+        alert("Failed to upload image: " + error.message);
         return;
       } finally {
         setIsUploading(false);
@@ -99,13 +108,22 @@ export function Chat() {
 
     // Upload audio if recorded
     if (audioBlob) {
-      const audioRef = ref(storage, `voice-notes/${Date.now()}.webm`);
       setIsUploading(true);
       try {
-        await uploadBytes(audioRef, audioBlob);
-        mediaUrl = await getDownloadURL(audioRef);
+        const formData = new FormData();
+        formData.append("file", audioBlob);
+        formData.append("upload_preset", "videos"); // Replace with your Cloudinary preset for audio
+        formData.append("resource_type", "video"); // Important: Cloudinary treats audio/video together
+    
+        const res = await fetch("https://api.cloudinary.com/v1_1/drpqytgbz/video/upload", {
+          method: "POST",
+          body: formData,
+        });
+    
+        const data = await res.json();
+        mediaUrl = data.secure_url;
       } catch (err) {
-        console.error("Audio upload failed", err);
+        console.error("Audio upload to Cloudinary failed:", err);
         alert("Failed to upload voice note: " + err.message);
         return;
       } finally {
@@ -323,16 +341,37 @@ export function Chat() {
                   {user.firstName ? `${user.firstName} ${user.surname}` : msg.username}
                 </div>
                 <div
-                  style={{
-                    padding: "10px",
-                    backgroundColor: isOwnMessage ? "#d1f7c4" : "#f1f1f1",
-                    borderRadius: "10px",
-                    wordWrap: "break-word",
-                    color: "black",
-                  }}
-                >
-                  {msg.text}
-                </div>
+  style={{
+    padding: "10px",
+    backgroundColor: isOwnMessage ? "#d1f7c4" : "#f1f1f1",
+    borderRadius: "10px",
+    wordWrap: "break-word",
+    color: "black",
+  }}
+>
+  {/* Text Message */}
+  {msg.text && <div>{msg.text}</div>}
+
+  {/* Media Message */}
+  {msg.mediaUrl && (
+    <div style={{ marginTop: "10px" }}>
+      {msg.mediaUrl.includes("image") ? (
+        <img
+          src={msg.mediaUrl}
+          alt="media"
+          style={{
+            maxWidth: "200px",
+            maxHeight: "200px",
+            borderRadius: "8px",
+            objectFit: "cover",
+          }}
+        />
+      ) : (
+        <audio controls src={msg.mediaUrl} style={{ width: "100%" }} />
+      )}
+    </div>
+  )}
+</div>
                 {msg.reactions?.length > 0 && (
                   <div style={{ marginTop: "5px", fontSize: "16px", color: "#666" }}>
                     {msg.reactions.map((reaction, idx) => (
