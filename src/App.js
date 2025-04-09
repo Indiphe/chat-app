@@ -6,6 +6,7 @@ import { Chat } from "./Chat";  // Import Chat component
 import Profile from './Profile';
 import { auth } from "./firebaseConfig";  // Make sure auth is correctly imported from Firebase
 import { onAuthStateChanged } from "firebase/auth";
+import { ResetPassword } from "./ResetPassword";
 import "./App.css"; // Ensure this is included
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
         <Route path="/profile" element={user ? <Profile /> : <Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/chat" element={user ? <Chat /> : <Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Login />} />
       </Routes>
     </Router>
