@@ -13,6 +13,7 @@ export function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState({});
+  const [userName, setUserName] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
@@ -33,11 +34,13 @@ export function Chat() {
   const navigate = useNavigate();
   const [typingUsers, setTypingUsers] = useState({});  // To store the typing status of all users
   // Declare typingTimeout using useRef
-  const [userName, setUserName] = useState("");
+ 
   const typingTimeout = useRef(null);
 
   // Handle typing indicator and update in Firestore
-  const handleTyping = () => {
+    const handleTyping = (e) => {
+      const value = e.target.value;
+      setMessage(value);
     const typingRef = doc(db, "typingStatus", auth.currentUser.uid);
     setDoc(typingRef, { typing: true });
  
@@ -82,6 +85,13 @@ export function Chat() {
       const msgs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setMessages(msgs);
     };
+    const fetchCurrentUser = async () => {
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        setUserName(`${userSnap.data().firstName} ${userSnap.data().surname}`);
+      }
+    };
      // Set up a listener for typing status
      const unsubscribeTypingStatus = onSnapshot(collection(db, "typingStatus"), (snapshot) => {
       const typingData = {};
@@ -94,6 +104,7 @@ export function Chat() {
     fetchUsers();
     fetchUserProfile();
     fetchMessages();
+    fetchCurrentUser();
 
     return () => {
       unsubscribeTypingStatus();  // Clean up the listener when component unmounts
@@ -344,34 +355,21 @@ export function Chat() {
         />
       )}
  {/* Header Section */}
- <div
-      style={{
-        width: "100%",
-        padding: "10px 20px",
-        backgroundColor: "#4CAF50",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderRadius: "10px",
-        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-        marginBottom: "20px",
-      }}
-    >
+ <div>
       <h2>Chat Room</h2>
        {/* Typing indicator for any user typing */}
-<div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)',marginTop: '50px', fontSize: '16px', fontWeight: 'lighter', color: '#fff' }}>
+<div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)',marginTop: '50px',marginTop: '-25px', fontSize: '16px', fontWeight: 'lighter', color: '#fff' }}>
           {typingUserName}
 </div>
-<div>
 
-<span style={{ marginRight: '440px' }}>Welcome, {currentUser.userName}</span>
+ <div>
+<span style={{  position: 'absolute', right: '20px', marginTop: '-25px'}}>Welcome, {userName}</span>
 </div>
-</div>
+</div> 
       <div style={{ width: "90%", height: "80vh", overflowY: "auto", display: "flex", flexDirection: "column", padding: "10px" }}>
         {messages.map((msg) => {
           const isOwnMessage = msg.uid === auth.currentUser?.uid;
-          const user = users[msg.uid] || { firstName: userName, profilePic: "https://via.placeholder.com/50" };
+          const user = users[msg.uid] || { userName, profilePic: "https://via.placeholder.com/50" };
 
           return (
             <div
