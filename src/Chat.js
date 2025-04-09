@@ -203,24 +203,23 @@ export function Chat() {
       console.error("Error sending message: ", error);
     }
   };
-  // Get the name of the typing user (if any)
-  const typingUser = Object.entries(typingUsers).find(([userId, isTyping]) => {
-    return isTyping && userId !== auth.currentUser.uid;
-  });
+   // Get the name of the typing user (if any), excluding the current user
+const typingUserEntry = Object.entries(typingUsers).find(
+  ([userId, isTyping]) => isTyping && userId !== auth.currentUser?.uid
+);
  
-  // Display the name of the typing user
-  let typingUserName = "";
-  if (typingUser) {
-    const typingUserId = typingUser[0];
-    console.log("Typing user ID:", typingUserId); // Debugging
+let typingUserName = "";
  
-    // Check if the users data is available and if it contains the typing user
-    if (users[typingUserId]) {
-      typingUserName = `${users[typingUserId].firstName} ${users[typingUserId].surname} is typing...`;
-    } else {
-      typingUserName = "A user is typing...";
-    }
+if (typingUserEntry) {
+  const [typingUserId] = typingUserEntry;
+  console.log("Typing user ID:", typingUserId); // Debugging
+ 
+  const typingUserData = users?.[typingUserId];
+ 
+  if (typingUserData?.firstName && typingUserData?.surname) {
+    typingUserName = `${typingUserData.firstName} ${typingUserData.surname} is typing...`;
   }
+}
 
         {/* Typing indicator for any user typing */}
 <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: '16px', fontWeight: 'lighter', color: '#fff' }}>
