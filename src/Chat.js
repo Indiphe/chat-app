@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { auth, db, storage } from "./firebaseConfig"; // Ensure storage is imported
-import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Mic, MicOff } from "lucide-react";
 import { Cloudinary } from '@cloudinary/url-gen';
+import { collection, addDoc, query, orderBy, getDocs,updateDoc, doc, getDoc, setDoc, onSnapshot, deleteDoc } from "firebase/firestore";
+import { useRef } from "react";
+
 
 export function Chat() {
   const [message, setMessage] = useState("");
@@ -29,10 +31,22 @@ export function Chat() {
   const [mediaFile, setMediaFile] = useState(null); // Define mediaFile state
   const cld = new Cloudinary({ cloud: { cloudName: 'drpqytgbz' } }); // Initialize Cloudinary with your cloud name
   const navigate = useNavigate();
-  let typingTimeout = null;
+  const [typingUsers, setTypingUsers] = useState({});  // To store the typing status of all users
+  // Declare typingTimeout using useRef
+  const [userName, setUserName] = useState("");
+  const typingTimeout = useRef(null);
 
-  const handleTyping = (e) => {
-    setMessage(e.target.value);
+  // Handle typing indicator and update in Firestore
+  const handleTyping = () => {
+    const typingRef = doc(db, "typingStatus", auth.currentUser.uid);
+    setDoc(typingRef, { typing: true });
+ 
+    // Reset typing status after 2 seconds of inactivity
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+ 
+    typingTimeout.current = setTimeout(() => {
+      setDoc(typingRef, { typing: false });
+    }, 2000);
   };
 
   useEffect(() => {
@@ -46,6 +60,7 @@ export function Chat() {
           profilePic: doc.data().profilePic || doc.data().profilePicUrl || "https://via.placeholder.com/50"
         };
       });
+      console.log("Users fetched:", usersData); // Debugging
       setUsers(usersData);
     };
 
@@ -67,10 +82,25 @@ export function Chat() {
       const msgs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setMessages(msgs);
     };
-
+     // Set up a listener for typing status
+     const unsubscribeTypingStatus = onSnapshot(collection(db, "typingStatus"), (snapshot) => {
+      const typingData = {};
+      snapshot.forEach((doc) => {
+        typingData[doc.id] = doc.data().typing;
+      });
+      console.log("Typing data received:", typingData); // Debugging
+      setTypingUsers(typingData);
+    });
     fetchUsers();
     fetchUserProfile();
     fetchMessages();
+
+    return () => {
+      unsubscribeTypingStatus();  // Clean up the listener when component unmounts
+      // Optionally remove user's typing status when they leave
+      const typingRef = doc(db, "typingStatus", auth.currentUser.uid);
+      deleteDoc(typingRef);
+    };
   }, []);
 
   const handleSendMessage = async (e) => {
@@ -162,6 +192,29 @@ export function Chat() {
       console.error("Error sending message: ", error);
     }
   };
+  // Get the name of the typing user (if any)
+  const typingUser = Object.entries(typingUsers).find(([userId, isTyping]) => {
+    return isTyping && userId !== auth.currentUser.uid;
+  });
+ 
+  // Display the name of the typing user
+  let typingUserName = "";
+  if (typingUser) {
+    const typingUserId = typingUser[0];
+    console.log("Typing user ID:", typingUserId); // Debugging
+ 
+    // Check if the users data is available and if it contains the typing user
+    if (users[typingUserId]) {
+      typingUserName = `${users[typingUserId].firstName} ${users[typingUserId].surname} is typing...`;
+    } else {
+      typingUserName = "A user is typing...";
+    }
+  }
+
+        {/* Typing indicator for any user typing */}
+<div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: '16px', fontWeight: 'lighter', color: '#fff' }}>
+          {typingUserName}
+</div>
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -290,13 +343,35 @@ export function Chat() {
           }}
         />
       )}
-
+ {/* Header Section */}
+ <div
+      style={{
+        width: "100%",
+        padding: "10px 20px",
+        backgroundColor: "#4CAF50",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderRadius: "10px",
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+        marginBottom: "20px",
+      }}
+    >
       <h2>Chat Room</h2>
+       {/* Typing indicator for any user typing */}
+<div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)',marginTop: '50px', fontSize: '16px', fontWeight: 'lighter', color: '#fff' }}>
+          {typingUserName}
+</div>
+<div>
 
+<span style={{ marginRight: '440px' }}>Welcome, {currentUser.userName}</span>
+</div>
+</div>
       <div style={{ width: "90%", height: "80vh", overflowY: "auto", display: "flex", flexDirection: "column", padding: "10px" }}>
         {messages.map((msg) => {
           const isOwnMessage = msg.uid === auth.currentUser?.uid;
-          const user = users[msg.uid] || { firstName: "Unknown", surname: "User", profilePic: "https://via.placeholder.com/50" };
+          const user = users[msg.uid] || { firstName: userName, profilePic: "https://via.placeholder.com/50" };
 
           return (
             <div
