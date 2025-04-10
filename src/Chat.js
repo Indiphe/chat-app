@@ -482,7 +482,7 @@ export function Chat() {
         </div>
  
         <div>
-          <span style={{ position: 'absolute', right: '20px', marginTop: '-25px', color: '#fff'}}>
+          <span style={{ position: 'absolute', right: '970px', marginTop: '-22px', color: 'green'}}>
             Welcome, {userName || "User"}
           </span>
         </div>
