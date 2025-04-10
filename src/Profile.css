@@ -1,84 +1,248 @@
-/* Profile.css */
+/* Profile Container */
 .profile-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 20px;
-    background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    font-family: "Poppins", sans-serif;
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 2px;
+  font-family: 'Roboto Mono', monospace;
+  background-color: #1e1e1e;
+  color: #f1f1f1;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column; /* Ensures vertical stacking */
+  align-items: center; /* Centers the content horizontally */
+}
+
+.profile-pic {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.profile-pic img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #007bff; /* Border color matching app theme */
+}
+
+.file-input {
+  display: block;
+  margin-top: 15px;
+  color: #007bff;
+}
+
+.profile-details {
+  margin-top: -50px;
+}
+
+/* Profile Content */
+.profile-content {
+  display: flex;
+  justify-content: center; /* Center the profile content horizontally */
+  align-items: flex-start; /* Align the content to the top */
+  gap: 20px;
+  width: 100%; /* Full width of parent container */
+  text-align: center;
+  margin-top: -50px;
+  padding: 0;
+}
+
+.updates{
+  margin-left: -440px;
+}
+.profile-left {
+  width: 50%; /* Adjust width to ensure it doesn't stretch */
+}
+
+.profile-right {
+  width: 50%;
+}
+ label{
+  left: 60%;
+ }
+
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  width: 50%;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background-color: #3c3c3c;
+  color: #f1f1f1;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: #007bff; /* Highlight with theme color */
+  outline: none;
+}
+
+button {
+  width: 25%;
+  text-align: center;
+  margin-bottom: 10px;
+  padding: 14px;
+  border: none;
+  border-radius: 6px;
+  background: #007bff;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.btnbtc{
+  width: 7%;
+  text-align: left;
+  margin-bottom: 800px;
+  position: fixed;
+  top: 30px;
+  left: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.display-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* space between input and button */
+  margin-top: 8px;
+}
+
+.display-name-row input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.btnsaveprfl {
+  padding: 8px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btnsaveprfl:hover {
+  background: #0056b3;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+/* Navbar Container */
+.navbar {
+  position: fixed;
+  top: 10px;
+  right: 20px;
+  z-index: 9999; /* boost it higher */
+  background-color: #222;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Burger Menu Icon */
+.burger-menu {
+  font-size: 30px;
+  cursor: pointer;
+  background: #007bff;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.burger-menu:hover {
+  background: #0056b3; /* Darker blue on hover */
+}
+
+/* Menu Content */
+.menu-content {
+  position: absolute;
+  z-index: 9999; /* keep above */
+ top: 80px;
+  right: 0;
+  background: #333;
+  padding: 0;
+  border-radius: 8px;
+  width: 180px;
+}
+
+
+.menu-content button {
+  width: 100%; /* Buttons fill the container */
+  margin: 5px;
+  padding: 8px;
+  border: none;
+  border-radius: 5px;
+  background: #444;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.menu-content button:hover {
+  background: #007bff;
+}
+
+/* Mobile responsiveness: Make burger menu larger and positioned better */
+@media (max-width: 768px) {
+  .navbar {
+    top: 20px;
+    right: 10px;
   }
-  
-  .profile-pic img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 4px solid #4a90e2;
-    object-fit: cover;
+
+  .burger-menu {
+    padding: 15px;
+    font-size: 35px;
   }
-  
-  .profile-pic input {
-    margin-top: 10px;
-    padding: 5px;
-  }
-  
-  .profile-details {
-    margin-top: 15px;
-  }
-  
-  .profile-details label {
-    display: block;
+
+  .menu-content {
+    width: 150px;
     font-size: 14px;
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: #333;
   }
-  
-  .profile-details input {
-    width: 100%;
-    padding: 8px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
-  
-  button {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #4a90e2;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  
-  button:hover {
-    background-color: #357ab7;
-  }
-  
-  button[disabled] {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-  
-  button.logout {
-    background-color: #ff4d4d;
-  }
-  
-  button.logout:hover {
-    background-color: #cc0000;
-  }
-  
-  button.deactivate {
-    background-color: #f1c40f;
-  }
-  
-  button.deactivate:hover {
-    background-color: #d4ac0d;
-  }
-  
+}
+
+.profile-right button {
+  width: auto;
+  margin: 5px;
+  background-color: #444;
+}
+
+.profile-right button:hover {
+  background-color: #666;
+}
+
+.profile-right button:active {
+  background-color: #007bff;
+}
+
+.profile-details {
+  margin-bottom: 30px;
+  font-size: 18px;
+}
+
+/* Add transitions and animations */
+input,
+button {
+  transition: all 0.3s ease;
+}
+
+input:focus,
+button:hover {
+  background-color: #444;
+  border-color: #007bff;
+}
