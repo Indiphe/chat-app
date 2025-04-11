@@ -3,6 +3,7 @@
   position: relative;
   z-index: 1;
   max-width: 100%;
+  height: auto;
   margin: 0 auto;
   padding: 2px;
   font-family: 'Roboto Mono', monospace;
